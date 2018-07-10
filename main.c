@@ -45,9 +45,6 @@ int leer_archivo(char *dir ){
 		if (line[read - 1] == '\n')
 			line[read - 1] = '\0';
 
-		// El segundo
-		// printf("%s\n", line);
-
 		// La primera linea de cada segmento de informacion tampoco se necesita
 		// A partir de la segunda linea de cada segmento es que esta la info
 		// necesaria para calcular el promedio

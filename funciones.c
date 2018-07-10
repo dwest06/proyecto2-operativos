@@ -42,3 +42,7 @@ char* obtener_ruta_absoluta(char *ruta_relativa) {
 
     return ruta; 
 }
+
+double calcular_promedio() {
+    return 1.0;
+}
