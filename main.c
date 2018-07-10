@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include "funciones.h"
 
 /*
  *	Funcion que se le pasa una direccion de un archivo .csv, lee el contenido
@@ -12,106 +14,105 @@
  */
 int leer_archivo(char *dir ){
 
-	//Declaramos ciertas variables utiles para contar hombres y mujeres
+	// Declaramos ciertas variables utiles para contar hombres y mujeres
 	int count_h = 0;
 	int count_m = 0;
 
-	//Abrimos el archivo
+	// Abrimos el archivo
 	FILE * fd = fopen(dir, "r");
 
-	//Verificamos si el se abrio correctamente
+	// Verificamos si el se abrio correctamente
 	if (fd == NULL){
 		perror("Error en leer_archivo");
 		exit(EXIT_FAILURE);
 	}
 
-	//Declaramos l variables para leer el archivo
+	// Declaramos l variables para leer el archivo
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	char *token = NULL;
 
-	//La primera linea la descartamos ya que no se necesita
+	// La primera linea la descartamos ya que no se necesita
 	read = getline(&line, &len, fd);
 	printf("Este es el primer getline: %s\n", line );
-	//Leemos hasta que ya no puedo leer mas
+	// Leemos hasta que ya no puedo leer mas
 	while ((read = getline(&line, &len, fd)) != -1) {
-		//O leemos hasta que la linea que sea solo contenga un salto de linea
+		// O leemos hasta que la linea que sea solo contenga un salto de linea
 		if (read == 1) break;
 
-		//Quitamos el salto de linea al final
+		// Quitamos el salto de linea al final
 		if (line[read - 1] == '\n')
 			line[read - 1] = '\0';
 
-		//El segundo
-		//printf("%s\n", line);
+		// El segundo
+		// printf("%s\n", line);
 
-		//La primera linea de cada segmento de informacion tampoco se necesita
-		//A partir de la segunda linea de cada segmento es que esta la info
-		//necesaria para calcular el promedio
-		//Esta linea para los hombres
+		// La primera linea de cada segmento de informacion tampoco se necesita
+		// A partir de la segunda linea de cada segmento es que esta la info
+		// necesaria para calcular el promedio
+		// Esta linea para los hombres
 		read = getline(&line, &len, fd);
 
-        //El primer token de la linea tampoco se necesita
+        // El primer token de la linea tampoco se necesita
         token = strtok(line, ",");
         printf("%s\n", token);
 
-        //Leemos todos los datos 
+        // Leemos todos los datos 
         while ((token = strtok(NULL,",")) != NULL){
-        	//Calcular promedio de los hombres
+        	// Calcular promedio de los hombres
         	printf("%s\n",token );
         }
 
-        //Para las mujeres
+        // Para las mujeres
         read = getline(&line, &len, fd);
 
-        //El primer token de la linea tampoco se necesita
+        // El primer token de la linea tampoco se necesita
         token = strtok(line, ",");
         printf("%s\n", token);
 
-        //Leemos todos los datos 
+        // Leemos todos los datos 
         while ((token = strtok(NULL,",")) != NULL){
-        	//Calcular promedio de las mujeres
+        	// Calcular promedio de las mujeres
         	printf("%s\n",token );
         }
     }
 
-	//lo Cerramos
+	// lo Cerramos
 	fclose(fd);
 	return 0;
 }
 
 
 int main(int argc, char const *argv[]){
-	
-	//Verificaciones de parametros de entrada
+	// Verificaciones de parametros de entrada
 	if (argc < 2){
 		printf("Error.\nUso: %s <NumProcesos> <ArchivoLista>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 	
-	//Variables necesarias
-	//Cantiad de procesos que se deben crear
+	// Variables necesarias
+	// Cantiad de procesos que se deben crear
 	int NumProcesos = atoi(argv[1]);
-	//Leemos el archivo que contiene el nombre de los .csv que se deben analizar
+	// Leemos el archivo que contiene el nombre de los .csv que se deben analizar
 	FILE* fdprincipal = fopen(argv[2], "r");
 
-	//Verificamos si fue exitoso el open del archivo
+	// Verificamos si fue exitoso el open del archivo
 	if (fdprincipal == NULL){
 		perror("Archivo no encontrado");
 		exit(EXIT_FAILURE);
 	}
 
-	//Guardamos un arreglo con la cantidad de 
+	// Guardamos un arreglo con la cantidad de 
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t readd;
 	char *token = NULL;
-	//Arreglo de strings para guardar la cantidad de nombres de archivos
+	// Arreglo de strings para guardar la cantidad de nombres de archivos
 	char tokens[NumProcesos][100];
 
-	//Obtenemos del archivo los nombres de los demas archivos y los guardamos 
-	//en el arreglo 
+	// Obtenemos del archivo los nombres de los demas archivos y los guardamos 
+	// en el arreglo 
 	for (int i = 0; i < NumProcesos; ++i){
 		readd = getline(&line, &len, fdprincipal);
 
@@ -121,43 +122,43 @@ int main(int argc, char const *argv[]){
 		strcpy(tokens[i],line);
 	}
 
-	//Creamos los arreglos de files descriptors para la comunicacion entre
-	//Procesos mediante pipes
-	//Files descriptors para la comunicacion padre a hijo
+	//  Creamos los arreglos de files descriptors para la comunicacion entre
+	//  Procesos mediante pipes
+	//  Files descriptors para la comunicacion padre a hijo
 	int fdp[NumProcesos][2];
-	//Files descriptors para la comunicacion hijo a padre
+	// Files descriptors para la comunicacion hijo a padre
 	int fdh[NumProcesos][2];
 
 	int final = 0;
 
-	//Para los forks y reconocer cual es el padre y cual es el hijo
+	// Para los forks y reconocer cual es el padre y cual es el hijo
 	pid_t f;
 
 	for (int i = 0; i < NumProcesos; ++i)	{
 
-		//Pipe para la comunicacion de padre a hijo
+		// Pipe para la comunicacion de padre a hijo
 		pipe(fdp[i]);
 
-		//Pide para la comunicaion de hijo a padre
+		// Pide para la comunicaion de hijo a padre
 		pipe(fdh[i]);
 
-		//Fork para crear a los hijos
+		// Fork para crear a los hijos
 		f = fork();
-		//Proceso padre
+		// Proceso padre
 		if (f > 0){
-			//Cerramos el read del padre
+			// Cerramos el read del padre
 			close(fdp[i][0]);
 
-			//Cerramos el write del hijo
+			// Cerramos el write del hijo
 			close(fdh[i][1]);
 
-			//Pasamos la informacion por el 
+			// Pasamos la informacion por el 
 			write(fdp[i][1], tokens[i], strlen(tokens[i]) + 1);
 
-			//Esperamos a que el hijo finalice los calculos
+			// Esperamos a que el hijo finalice los calculos
 			wait(NULL);
 
-			//Obtenemos los resultados por el pipe
+			// Obtenemos los resultados por el pipe
 
 			/////////////////////////////////
 			// No se todavia que se recibe por el pipe
