@@ -7,7 +7,7 @@ int es_archivo(char *ruta) {
 }
 
 char* obtener_ruta_absoluta(char *ruta_relativa) {
-    if (ruta_relativa[0] == '/') return ruta_relativa;
+    if (ruta_relativa[0] == '/' || ruta_relativa[0] == '~') return ruta_relativa;
 
     char cwd[1024];
     char *ruta_corregida, *ruta;
@@ -28,12 +28,16 @@ char* obtener_ruta_absoluta(char *ruta_relativa) {
         strcpy(ruta_corregida, "");
         while (token2 != NULL) {
             strcat(ruta_corregida, token1);
+            strcat(ruta_corregida, "/");
             strcpy(token1, token2);
             token2 = strtok(NULL, "/");
         }
     }
 
+
     strcat(ruta, ruta_corregida);
+
+    if (ruta[strlen(ruta)] != '/') strcat(ruta, "/");
     free(ruta_corregida);
 
     return ruta; 

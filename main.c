@@ -83,31 +83,36 @@ int leer_archivo(char *dir ){
 	return 0;
 }
 
-
 int main(int argc, char const *argv[]){
 	// Verificaciones de parametros de entrada
-	if (argc < 2){
-		printf("Error.\nUso: %s <NumProcesos> <ArchivoLista>\n", argv[0]);
+	if (argc < 3){
+		printf("Cantidad inválida de argumentos.\n\tUso:\t%s<numero de procesos> <archivo>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 	
 	// Variables necesarias
 	// Cantiad de procesos que se deben crear
 	int NumProcesos = atoi(argv[1]);
+
 	// Leemos el archivo que contiene el nombre de los .csv que se deben analizar
 	FILE* fdprincipal = fopen(argv[2], "r");
 
 	// Verificamos si fue exitoso el open del archivo
 	if (fdprincipal == NULL){
-		perror("Archivo no encontrado");
+		perror("Archivo ingresado no encontrado");
 		exit(EXIT_FAILURE);
 	}
+
+    char *nombre_archivo_contenido = calloc(BUFFER, sizeof(char));
+    strcpy(nombre_archivo_contenido, argv[2]);
+    char *ruta_directorio = obtener_ruta_absoluta(nombre_archivo_contenido);
 
 	// Guardamos un arreglo con la cantidad de 
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t readd;
 	char *token = NULL;
+
 	// Arreglo de strings para guardar la cantidad de nombres de archivos
 	char tokens[NumProcesos][100];
 
@@ -116,10 +121,12 @@ int main(int argc, char const *argv[]){
 	for (int i = 0; i < NumProcesos; ++i){
 		readd = getline(&line, &len, fdprincipal);
 
-		if (line[readd - 1] == '\n')
-			line[readd - 1] = '\0';
+		if (line[strlen(line) - 1] == '\n') line[strlen(line) - 1] = '\0';
+        if (line[strlen(line) - 1] == ' ') line[strlen(line) - 1] = '\0';
 
-		strcpy(tokens[i],line);
+        strcpy(tokens[i], ruta_directorio);
+		strcat(tokens[i], line);
+        strcat(tokens[i], ".csv");
 	}
 
 	//  Creamos los arreglos de files descriptors para la comunicacion entre
@@ -185,23 +192,12 @@ int main(int argc, char const *argv[]){
 			close(fdh[i][0]);
 
 			//Definimos variables para generar la ruta
-			char nom[100];
 			char ruta[120];
 			//inicializamos 
 			memset(ruta, 0, 120);
 
 			//Leemos el archivo del pipe
-			read(fdp[i][0], nom, 100 );
-
-			//Eliminamos el espacio del final del archivo leido
-			if(nom[strlen(nom) - 1] == ' ')
-				nom[strlen(nom) - 1] = '\0';
-
-			//concatenamos el .csv para que pueda abrir el archivo correctamente
-			strcat(nom, ".csv");
-			strcat(ruta, "6d/");
-			//En ruta tendremos la direccion exacta del archivo a analizar
-			strcat(ruta, nom);
+			read(fdp[i][0], ruta, 100 );
 
 			//Pasa la ruta a a funcion que abre el .csv y analiza los datos
 			leer_archivo(ruta);
