@@ -93,6 +93,8 @@ int main(int argc, char const *argv[]){
 	// Variables necesarias
 	// Cantiad de procesos que se deben crear
 	int NumProcesos = atoi(argv[1]);
+	//Cantidas de archivos leidos 
+	int countArchivos = 0;
 
 	// Leemos el archivo que contiene el nombre de los .csv que se deben analizar
 	FILE* fdprincipal = fopen(argv[2], "r");
@@ -118,8 +120,8 @@ int main(int argc, char const *argv[]){
 
 	// Obtenemos del archivo los nombres de los demas archivos y los guardamos 
 	// en el arreglo 
-	for (int i = 0; i < NumProcesos; ++i){
-		readd = getline(&line, &len, fdprincipal);
+	//for (int i = 0; i < NumProcesos; ++i){
+	while ((readd = getline(&line, &len, fdprincipal)) != NULL){
 
 		if (line[strlen(line) - 1] == '\n') line[strlen(line) - 1] = '\0';
         if (line[strlen(line) - 1] == ' ') line[strlen(line) - 1] = '\0';
@@ -127,6 +129,8 @@ int main(int argc, char const *argv[]){
         strcpy(tokens[i], ruta_directorio);
 		strcat(tokens[i], line);
         strcat(tokens[i], ".csv");
+
+        countArchivos++;
 	}
 
 	//  Creamos los arreglos de files descriptors para la comunicacion entre
@@ -139,9 +143,10 @@ int main(int argc, char const *argv[]){
 	int final = 0;
 
 	// Para los forks y reconocer cual es el padre y cual es el hijo
-	pid_t f;
-
-	for (int i = 0; i < NumProcesos; ++i)	{
+	pid_t f[NumProcesos];
+	int i;
+	//Creacion de los procesor
+	for (i = 0; i < NumProcesos; ++i)	{
 
 		// Pipe para la comunicacion de padre a hijo
 		pipe(fdp[i]);
@@ -150,21 +155,34 @@ int main(int argc, char const *argv[]){
 		pipe(fdh[i]);
 
 		// Fork para crear a los hijos
-		f = fork();
-		// Proceso padre
-		if (f > 0){
+		f[i] = fork();
+
+		//Si es el hijo, se detiene el loop para que no se cree mas procesos
+		if (f[i] == 0) break;
+	
+	}
+
+	// Proceso padre
+	if (f[i] > 0){
+
+		//Cerramos los pipes necesarios de cada hijo
+		for (int i = 0; i < NumProcesos; ++i){
 			// Cerramos el read del padre
 			close(fdp[i][0]);
 
 			// Cerramos el write del hijo
 			close(fdh[i][1]);
-
-			// Pasamos la informacion por el 
-			write(fdp[i][1], tokens[i], strlen(tokens[i]) + 1);
+		}
+			
+		for (int i = 0; i < countArchivos; ++i){
+			// Pasamos la informacion por el pipe
+			write(fdp[i%NumProcesos][1], tokens[i], strlen(tokens[i]) + 1);
+		}
 
 			// Esperamos a que el hijo finalice los calculos
 			wait(NULL);
 
+		for (int i = 0; i < countArchivos; ++i){
 			// Obtenemos los resultados por el pipe
 
 			/////////////////////////////////
@@ -172,58 +190,58 @@ int main(int argc, char const *argv[]){
 			/////////////////////////////////
 
 			int a;
-			read(fdh[i][0], &a, sizeof(int));
+			read(fdh[i%NumProcesos][0], &a, sizeof(int));
 			printf("Recibio en el pipe:%d\n", a);
 			final += a;
 
 			//Recibe todos la info de los hijos
-
+		}
+		
+		
+		for (int i = 0; i < NumProcesos; ++i){
 			//Cerramos los demas files descriptors de los pipes
 			close(fdp[i][1]);
 			close(fdh[i][0]);
-
-		}
-		//Proceso hijo
-		else{
-			//Cerramos el write del padre
-			close(fdp[i][1]);
-
-			//Cerramos el read del hijo
-			close(fdh[i][0]);
-
-			//Definimos variables para generar la ruta
-			char ruta[120];
-			//inicializamos 
-			memset(ruta, 0, 120);
-
-			//Leemos el archivo del pipe
-			read(fdp[i][0], ruta, 100 );
-
-			//Pasa la ruta a a funcion que abre el .csv y analiza los datos
-			leer_archivo(ruta);
-
-			//Pasamos por pipe al proceso padre el resultado de los archivos
-			//Analizados
-
-			//////////////////////////////////
-			// Tambien falta esto, no se que parametros enviar
-			//////////////////////////////////
-
-			//write(fdh[i][1], &aux, sizeof(aux) );
-
-			//Cerramos los demas files descriptor de los pipes
-			close(fdp[i][0]);
-			close(fdh[i][1]);
-
-			exit(0);
-
-
 		}
 
-
-    //Cerramos el archivo que contiene la lista de los nombres
-	
 	}
+	//Proceso hijo
+	else{
+		//Cerramos el write del padre
+		close(fdp[i][1]);
+
+		//Cerramos el read del hijo
+		close(fdh[i][0]);
+
+
+		//Definimos variables para generar la ruta
+		char ruta[120];
+		//inicializamos 
+		memset(ruta, 0, 120);
+
+		//Leemos el archivo del pipe
+		read(fdp[i][0], ruta, 100 );
+
+		//Pasa la ruta a a funcion que abre el .csv y analiza los datos
+		leer_archivo(ruta);
+
+		//Pasamos por pipe al proceso padre el resultado de los archivos
+		//Analizados
+
+		//////////////////////////////////
+		// Tambien falta esto, no se que parametros enviar
+		//////////////////////////////////
+
+		//write(fdh[i][1], &aux, sizeof(aux) );
+
+		//Cerramos los demas files descriptor de los pipes
+		close(fdp[i][0]);
+		close(fdh[i][1]);
+
+		exit(0);
+
+
+		}
 	fclose(fdprincipal);
 	printf("Y el final fue: %d\n", final);
 	return 0;
