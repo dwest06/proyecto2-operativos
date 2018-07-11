@@ -20,6 +20,8 @@ char tokens[20][100];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#include "funciones.h"
+
 /***************************************************************************
  * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
  * Retorna el tiempo en microsegundos
