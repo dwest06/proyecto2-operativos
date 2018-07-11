@@ -10,6 +10,31 @@ int sumatoria(int elementos[]) {
     return res;
 }
 
+double promedio(int cantidad[]) {
+    int rangos[10][2] = {
+        {0, 9}, 
+        {10, 19},
+        {20, 29},
+        {30, 39},
+        {40, 49},
+        {50, 59},
+        {60, 69},
+        {70, 79},
+        {80, 89},
+        {90, 99}
+    };
+
+    double prom = 0;
+
+    for (int i = 0; i < 10; i++) {
+        prom += ((rangos[i][0] + rangos[i][1])/2)*cantidad[i];
+    }
+
+    prom /= sumatoria(cantidad);
+
+    return prom;
+}
+
 informacion* unir_datos(informacion *info1, informacion *info2) {
     informacion *resultado = calloc(1, sizeof(informacion));
 

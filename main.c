@@ -7,31 +7,6 @@
 #include <unistd.h>
 #include "funciones.h"
 
-double promedio(int cantidad[]) {
-	int rangos[10][2] = {
-		{0, 9}, 
-		{10, 19},
-		{20, 29},
-		{30, 39},
-		{40, 49},
-		{50, 59},
-		{60, 69},
-		{70, 79},
-		{80, 89},
-		{90, 99}
-	};
-
-	double prom = 0;
-
-	for (int i = 0; i < 10; i++) {
-		prom += ((rangos[i][0] + rangos[i][1])/2)*cantidad[i];
-	}
-
-	prom /= sumatoria(cantidad);
-
-	return prom;
-}
-
 /*
  *	Funcion que se le pasa una direccion de un archivo .csv, lee el contenido
  *	y calcula el promedio de hombre y promedio de mujeres
@@ -223,7 +198,7 @@ int main(int argc, char const *argv[]){
 
 			informacion* a = calloc(1, sizeof(informacion));
 			read(fdh[i][0], a, sizeof(informacion));
-			
+
 			if (info1 == NULL) {
 				info1 = a;
 			}
