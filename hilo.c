@@ -6,6 +6,8 @@
 #include <math.h>
 #include <sys/time.h>
 
+#include "funciones.h"
+
 /***************************************************************************
  * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
  * Retorna el tiempo en microsegundos
