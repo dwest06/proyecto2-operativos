@@ -14,18 +14,18 @@ $(DIR_LIBS):
 	mkdir $(DIR_LIBS)
 
 # Nombre de las librerías/objetos que se requieren
-LIBRERIAS = $(DIR_LIBS)/funciones.o $(DIR_LIBS)/stack.o $(DIR_LIBS)/main.o
+LIBRERIAS = $(DIR_LIBS)/funciones.o $(DIR_LIBS)/stack.o $(DIR_LIBS)/procesos.o
 
 # Nombre del ejecutable final
-PROGRAMA = main
+PROGRAMA = procesos
 
 # Algunos atajos que permitimos hacer con make
 .PHONY: all clean default
-.DEFAULT_GOAL := main
+.DEFAULT_GOAL := procesos
 
 # Compila todo el programa
 all: $(PROGRAMA)
-default: main
+default: procesos
 
 # Elimina todo lo compilado en ejecuciones anteriores
 clean:
@@ -37,8 +37,8 @@ clean:
 $(PROGRAMA): $(LIBRERIAS)
 	$(LINKEADOR) $(LIBRERIAS) -o $(PROGRAMA)
 
-$(DIR_LIBS)/main.o: main.c $(DIR_LIBS) funciones.h stack.h
-	$(COMPILADOR) main.c -o $(DIR_LIBS)/main.o
+$(DIR_LIBS)/procesos.o: procesos.c $(DIR_LIBS) funciones.h stack.h
+	$(COMPILADOR) procesos.c -o $(DIR_LIBS)/procesos.o
 
 $(DIR_LIBS)/funciones.o: funciones.c $(DIR_LIBS) 
 	$(COMPILADOR) funciones.c -o $(DIR_LIBS)/funciones.o

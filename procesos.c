@@ -8,21 +8,7 @@
 #include "funciones.h"
 #include <math.h>
 #include <sys/time.h>
-
-/***************************************************************************
- * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
- * Retorna el tiempo en microsegundos
- ***************************************************************************/
-int Tomar_Tiempo()
-{
-    struct timeval t;         /* usado para tomar los tiempos */
-    int dt;
-    gettimeofday ( &t, (struct timezone*)0 );
-    dt = (t.tv_sec)*1000000 + t.tv_usec;
-    return dt;
-}
-
-#include "funciones.h"
+#include <assert.h>
 #include "stack.h"
 
 pid_t parent_pid;
@@ -65,10 +51,6 @@ int main(int argc, char const *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	int Total_Time_Start, Total_Time_End;
-
-	Total_Time_Start = Tomar_Tiempo();
-	
 	// Variables necesarias
 	// Cantiad de procesos que se deben crear
 	int numero_procesos = atoi(argv[1]);
@@ -105,18 +87,21 @@ int main(int argc, char const *argv[]){
 
 	// Obtenemos del archivo los nombres de los demas archivos y los guardamos 
 	// en el arreglo 
-	//for (int i = 0; i < NumProcesos; ++i){
-	while ((readd = getline(&line, &len, fdprincipal)) != NULL){
+	//for (int i = 0; i < numero_procesos; ++i){
+	while ((getline(&linea_leida, &longitud, fdprincipal)) != -1){
 
-		if (line[strlen(line) - 1] == '\n') line[strlen(line) - 1] = '\0';
-        if (line[strlen(line) - 1] == ' ') line[strlen(line) - 1] = '\0';
+		if (linea_leida[strlen(linea_leida) - 1] == '\n') linea_leida[strlen(linea_leida) - 1] = '\0';
+        if (linea_leida[strlen(linea_leida) - 1] == ' ') linea_leida[strlen(linea_leida) - 1] = '\0';
 
-        strcpy(tokens[i], ruta_directorio);
-		strcat(tokens[i], line);
-        strcat(tokens[i], ".csv");
+        palabra = calloc(BUFFER, sizeof(char));
+        strcpy(palabra, ruta_directorio);
+		strcat(palabra, linea_leida);
+        strcat(palabra, ".csv");
+
+        push(pila_palabras, palabra);
 
         //Contamos cuantos archivos se tiene que analizar
-        countArchivos++;
+        cantidad_archivos++;
 	}
 
 	//  Creamos los arreglos de files descriptors para la comunicacion entre
@@ -129,7 +114,7 @@ int main(int argc, char const *argv[]){
 	int final = 0;
 
 	// Para los forks y reconocer cual es el padre y cual es el hijo
-	pid_t f[NumProcesos];
+	pid_t f[numero_procesos];
 	pid_t fid;
 	// Pipe para la comunicacion de padre a hijo
 	pipe(fdp);
@@ -137,7 +122,7 @@ int main(int argc, char const *argv[]){
 	pipe(fdh);
 
 	//Creacion de los procesor
-	for (int i = 0; i < NumProcesos; ++i)	{		
+	for (int i = 0; i < numero_procesos; ++i)	{		
 		// Fork para crear a los hijos
 		fid = fork();
 		f[i] = fid;
@@ -156,23 +141,22 @@ int main(int argc, char const *argv[]){
 		// Cerramos el write del hijo
 		close(fdh[1]);
 
-		for (int i = 0; i < countArchivos; ++i){
+		for (int i = 0; i < cantidad_archivos; ++i){
 			// Pasamos la informacion por el pipe
-			write(fdp[1], tokens[i], strlen(tokens[i]) + 1);
+			palabra = pop(pila_palabras);
+			write(fdp[1], palabra, strlen(palabra) + 1);
 		}
 
 		//Cerramos la entrada de escritura
 		close(fdp[1]);
 
 		//Se recibe la informacion de cada hijo y se totaliza
-		for (int i = 0; i < countArchivos; ++i){
+		for (int i = 0; i < cantidad_archivos; ++i){
 			// Obtenemos los resultados por el pipe
 
-			/////////////////////////////////
-			// Recibe la struct aqui, besitos
-			/////////////////////////////////
-			read(fdh[0], , );
-			printf("Recibio en el pipe:%d\n", a);
+			informacion* a;
+			read(fdh[0], a, sizeof(a));
+			printf("Recibio en el pipe:%d\n", a->hombres);
 
 		}
 		
@@ -180,7 +164,7 @@ int main(int argc, char const *argv[]){
 		//Cerramos file descriptor del pipes
 		close(fdh[0]);
 
-		for (int i = 0; i < NumProcesos; ++i){
+		for (int i = 0; i < numero_procesos; ++i){
 			kill(f[i], SIGKILL);
 		}
 
@@ -205,14 +189,8 @@ int main(int argc, char const *argv[]){
 			read(fdp[0], ruta, 100 );
 			
 			//Pasa la ruta a a funcion que abre el .csv y analiza los datos
-			leer_archivo(ruta);
-
-
-			//////////////////////////////////
-			// Aqui envia el struct al padre
-			//////////////////////////////////
-
-			write(fdh[1], , );	
+			informacion* resultado = leer_archivo(ruta);
+			write(fdh[1], resultado, sizeof(informacion));	
 		}
 		
 
@@ -223,11 +201,7 @@ int main(int argc, char const *argv[]){
 		exit(0);
 	}
 
-
-		}
-
-	Total_Time_End = Tomar_Tiempo();
-	fclose(fdprincipal);
-	printf("Tiempo tomasdo: %d\n",Total_Time_End - Total_Time_Start );
+	int tiempo_f = Tomar_Tiempo();
+	printf("Tiempo:\t%ims\n", tiempo_f - tiempo_i);
 	return 0;
 }
