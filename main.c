@@ -141,7 +141,6 @@ int main(int argc, char const *argv[]){
 		}
 			
 		char* archivo;
-		
 		if (cantidad_archivos <= numero_procesos) {
 			for (int i = 0; i < cantidad_archivos; ++i){
 				// Pasamos la informacion por el pipe
