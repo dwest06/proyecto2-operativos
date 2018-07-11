@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -27,3 +28,5 @@ informacion* unir_datos(informacion *info1, informacion *info2);
 double promedio(int cantidad[]);
 
 informacion* leer_archivo(char *dir);
+
+int Tomar_Tiempo();

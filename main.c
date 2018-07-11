@@ -43,6 +43,8 @@ int hallar_posicion_proceso(pid_t proceso, pid_t arreglo[], int n) {
 
 int main(int argc, char const *argv[]){
 
+	int tiempo_i = Tomar_Tiempo();
+
 	// Verificaciones de parametros de entrada
 	if (argc < 3){
 		printf("Cantidad inválida de argumentos.\n\tUso:\t%s<numero de procesos> <archivo>\n", argv[0]);
@@ -243,5 +245,9 @@ int main(int argc, char const *argv[]){
 
 	printf("Promedio total de edad de hombres: %f\n", promedio(infofinal->proporcion_h));
 	printf("Promedio total de edad de mujeres: %f\n", promedio(infofinal->proporcion_m));
+	
+	int tiempo_f = Tomar_Tiempo();
+
+	printf("Tiempo:\t%ims\n", tiempo_f - tiempo_i);
 	return 0;
 }
