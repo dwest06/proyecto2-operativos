@@ -88,7 +88,7 @@ char* obtener_ruta_absoluta(char *ruta_relativa) {
 
     strcat(ruta, ruta_corregida);
 
-    if (ruta[strlen(ruta)] != '/') strcat(ruta, "/");
+    if (ruta[strlen(ruta)-1] != '/') strcat(ruta, "/");
     free(ruta_corregida);
 
     return ruta; 

@@ -19,6 +19,21 @@ void sigquit_handler (int sig) {
 	if (parent_pid != self) _exit(0);
 }
 
+int contar_lineas(FILE* descriptor) {
+	int lineas = 0;
+	int ch;
+
+	while(!feof(descriptor))
+	{
+	  ch = fgetc(descriptor);
+	  if(ch == '\n')
+	  {
+	    lineas++;
+	  }
+	}
+	return lineas;
+}
+
 int hallar_posicion_proceso(pid_t proceso, pid_t arreglo[], int n) {
 	for (int i = i; i < n; i++) {
 		if (arreglo[i] == proceso) return i; 
@@ -33,9 +48,6 @@ int main(int argc, char const *argv[]){
 		printf("Cantidad inválida de argumentos.\n\tUso:\t%s<numero de procesos> <archivo>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
-
-
-
 
 	signal(SIGQUIT, sigquit_handler);
     parent_pid = getpid();
@@ -64,17 +76,20 @@ int main(int argc, char const *argv[]){
 	// Guardamos un arreglo con la cantidad de 
 	char *linea_leida = NULL;
 	size_t longitud = 0;
-	ssize_t leidos;
-	char *token = NULL;
 
 	// Arreglo de strings para guardar la cantidad de nombres de archivos
 	char* palabra;
-
 	stack* pila_palabras = createStack(BUFFER);
+
+	FILE* fd2 = fopen(argv[2], "r");
+	int cant_lineas = contar_lineas(fd2);
+	fclose(fd2);
 
 	// Obtenemos del archivo los nombres de los demas archivos y los guardamos 
 	// en el arreglo 
-	while ((leidos = getline(&linea_leida, &longitud, fdprincipal)) != NULL){
+	while (cant_lineas--) {
+		getline(&linea_leida, &longitud, fdprincipal);
+		if (linea_leida[0] == ' ' || linea_leida[0] == '\n') continue;
 		if (linea_leida[strlen(linea_leida) - 1] == '\n') linea_leida[strlen(linea_leida) - 1] = '\0';
         if (linea_leida[strlen(linea_leida) - 1] == ' ') linea_leida[strlen(linea_leida) - 1] = '\0';
 
@@ -114,8 +129,6 @@ int main(int argc, char const *argv[]){
 	
 	}
 
-
-
 	// Proceso padre
 	if (f[i] > 0){
 		//Cerramos los pipes necesarios de cada hijo
@@ -133,11 +146,12 @@ int main(int argc, char const *argv[]){
 			for (int i = 0; i < cantidad_archivos; ++i){
 				// Pasamos la informacion por el pipe
 				archivo = pop(pila_palabras);
-				write(fdp[i][1], archivo, strlen(archivo + 1));
+				write(fdp[i][1], archivo, strlen(archivo)+1);
 			}
 
-				// Esperamos a que algun hijo finalice los calculos
+			for (int i = 0; i < cantidad_archivos; i++) {
 				wait(NULL);
+			}
 
 			for (int i = 0; i < cantidad_archivos; ++i){
 				informacion* a = calloc(1, sizeof(informacion));
@@ -159,7 +173,7 @@ int main(int argc, char const *argv[]){
 			for (int i = 0; i < numero_procesos; ++i){
 				// Pasamos la informacion por el pipe
 				archivo = pop(pila_palabras);
-				write(fdp[i][1], archivo, strlen(archivo + 1));
+				write(fdp[i][1], archivo, strlen(archivo)+1);
 				cantidad_archivos--;
 			}
 			while (cantidad_archivos != -1) {
@@ -180,12 +194,11 @@ int main(int argc, char const *argv[]){
 				}
 
 				archivo = pop(pila_palabras);
-				write(fdp[i][1], archivo, strlen(archivo + 1));
+				write(fdp[retornado][1], archivo, strlen(archivo + 1));
 				cantidad_archivos--;
 			}
 
 		kill(-parent_pid, SIGQUIT);
-
 		}
 
 		for (int i = 0; i < numero_procesos; ++i){
@@ -203,21 +216,19 @@ int main(int argc, char const *argv[]){
 		//Cerramos el read del hijo
 		close(fdh[i][0]);
 
-
 		//Definimos variables para generar la ruta
-		char ruta[120];
+		char ruta[BUFFER];
 		//inicializamos 
-		memset(ruta, 0, 120);
-
+		memset(ruta, 0, BUFFER);
 
 		//Leemos el archivo del pipe
-		read(fdp[i][0], ruta, 100);
+		read(fdp[i][0], ruta, BUFFER);
 
 		//Pasa la ruta a a funcion que abre el .csv y analiza los datos
-		informacion *datos = leer_archivo(ruta);
-
-		write(fdh[i][1], datos, sizeof(informacion));
-
+		if (ruta[0] != ' ') {
+			informacion *datos = leer_archivo(ruta);
+			write(fdh[i][1], datos, sizeof(informacion));
+		}
 
 		//Cerramos los demas files descriptor de los pipes
 		close(fdp[i][0]);
