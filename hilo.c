@@ -5,6 +5,20 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/time.h>
+#include "funciones.h"
+
+//Variables Globales
+
+long cantHombres = 0, cantMujeres = 0, promedioHombre = 0, promedioMujeres= 0;
+
+int counter = 0;
+int NumHilos;
+//Cantidas de archivos leidos 
+int countArchivos = 0;
+
+char tokens[20][100];
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /***************************************************************************
  * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
@@ -20,13 +34,34 @@ int Tomar_Tiempo()
 }
 
 //Funcion que realiza un hilo
-void *leer_archivo(){
+void *leer_archivo(void *arg){
+	char *dir;
+	while (counter < countArchivos){
+		
+		pthread_mutex_lock(&mutex);
+		//Buscamos el archivo
+		dir = tokens[counter];
+		counter++;
+		printf("%s\n", dir);
+		pthread_mutex_unlock(&mutex);
+		/////////////////////
+		//Analizamos lo que este en dir
+		/////////////////////
 
+		//printf("%lu, counter: %d, dir: %s\n",pthread_self(), counter, dir );
+
+		
+	}
+
+	pthread_exit(NULL);
 }
 
 
 int main(int argc, char const *argv[]){
 	
+	int Total_Time_Start, Total_Time_End;
+
+	Total_Time_Start = Tomar_Tiempo();
 	// Verificaciones de parametros de entrada
 	if (argc < 3){
 		printf("Cantidad inválida de argumentos.\n\tUso:\t%s<numero de procesos> <archivo>\n", argv[0]);
@@ -35,10 +70,7 @@ int main(int argc, char const *argv[]){
 
 	// Variables necesarias
 	// Cantiad de procesos que se deben crear
-	int NumHilos = atoi(argv[1]);
-	//Cantidas de archivos leidos 
-	int countArchivos = 0;
-
+	NumHilos = atoi(argv[1]);
 	// Leemos el archivo que contiene el nombre de los .csv que se deben analizar
 	FILE* fdprincipal = fopen(argv[2], "r");
 
@@ -47,11 +79,12 @@ int main(int argc, char const *argv[]){
 		perror("Archivo ingresado no encontrado");
 		exit(EXIT_FAILURE);
 	}
-
 	char *nombre_archivo_contenido = calloc(BUFFER, sizeof(char));
     strcpy(nombre_archivo_contenido, argv[2]);
-    char *ruta_directorio = obtener_ruta_absoluta(nombre_archivo_contenido);
+    //char *ruta_directorio = obtener_ruta_absoluta(nombre_archivo_contenido);
+    char *ruta_directorio = "5departamentos/";
 
+  
     // Guardamos un arreglo con la cantidad de 
 	char *line = NULL;
 	size_t len = 0;
@@ -59,19 +92,22 @@ int main(int argc, char const *argv[]){
 	char *token = NULL;
 
 	// Arreglo de strings para guardar la cantidad de nombres de archivos
-	char tokens[NumHilos][100];
+	
 
 	// Obtenemos del archivo los nombres de los demas archivos y los guardamos 
 	// en el arreglo 
-	while ((readd = getline(&line, &len, fdprincipal)) != NULL){
+	while ((readd = getline(&line, &len, fdprincipal)) != -1){
+
 
 		if (line[strlen(line) - 1] == '\n') line[strlen(line) - 1] = '\0';
         if (line[strlen(line) - 1] == ' ') line[strlen(line) - 1] = '\0';
 
-        strcpy(tokens[i], ruta_directorio);
-		strcat(tokens[i], line);
-        strcat(tokens[i], ".csv");
-
+      
+        strcpy(tokens[countArchivos], ruta_directorio);
+		strcat(tokens[countArchivos], line);
+        strcat(tokens[countArchivos], ".csv");
+      
+      
         //Contamos cuantos archivos se tiene que analizar
         countArchivos++;
 	}
@@ -86,9 +122,16 @@ int main(int argc, char const *argv[]){
 	int err;
 
 	for (int i = 0; i < NumHilos; ++i){
-		err = pthread_create( &(threads[i]) , NULL , &leer_archivo, NULL );
-
+		err = pthread_create( &(threads[i%NumHilos]) , NULL , (void*)leer_archivo, NULL );
 	}
+
+	for (int i = 0; i < NumHilos; ++i){
+        pthread_join(threads[i], NULL);
+	}
+
+	Total_Time_End = Tomar_Tiempo();
+
+	printf("Tiempo tomasdo: %d\n",Total_Time_End - Total_Time_Start );
 
 	return 0;
 }
