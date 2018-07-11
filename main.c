@@ -104,6 +104,10 @@ int main(int argc, char const *argv[]){
 		printf("Cantidad inválida de argumentos.\n\tUso:\t%s<numero de procesos> <archivo>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
+
+	int Total_Time_Start, Total_Time_End;
+
+	Total_Time_Start = Tomar_Tiempo();
 	
 	// Variables necesarias
 	// Cantiad de procesos que se deben crear
@@ -152,26 +156,25 @@ int main(int argc, char const *argv[]){
 	//  Creamos los arreglos de files descriptors para la comunicacion entre
 	//  Procesos mediante pipes
 	//  Files descriptors para la comunicacion padre a hijo
-	int fdp[NumProcesos][2];
+	int fdp[2];
 	// Files descriptors para la comunicacion hijo a padre
-	int fdh[NumProcesos][2];
+	int fdh[2];
 
 	int final = 0;
 
 	// Para los forks y reconocer cual es el padre y cual es el hijo
 	pid_t f[NumProcesos];
-	int i;
+	pid_t fid;
+	// Pipe para la comunicacion de padre a hijo
+	pipe(fdp);
+	// Pide para la comunicaion de hijo a padre
+	pipe(fdh);
+
 	//Creacion de los procesor
-	for (i = 0; i < NumProcesos; ++i)	{
-
-		// Pipe para la comunicacion de padre a hijo
-		pipe(fdp[i]);
-
-		// Pide para la comunicaion de hijo a padre
-		pipe(fdh[i]);
-
+	for (int i = 0; i < NumProcesos; ++i)	{		
 		// Fork para crear a los hijos
-		f[i] = fork();
+		fid = fork();
+		f[i] = fid;
 
 		//Si es el hijo, se detiene el loop para que no se cree mas procesos
 		if (f[i] == 0) break;
@@ -179,59 +182,51 @@ int main(int argc, char const *argv[]){
 	}
 
 	// Proceso padre
-	if (f[i] > 0){
+	if (fid > 0){
 
-		//Cerramos los pipes necesarios de cada hijo
-		for (int i = 0; i < NumProcesos; ++i){
-			// Cerramos el read del padre
-			close(fdp[i][0]);
+		// Cerramos el read del padre
+		close(fdp[0]);
 
-			// Cerramos el write del hijo
-			close(fdh[i][1]);
-		}
-		int cuenta = 0;
-		//for (int i = 0; i < countArchivos; ++i){
-		while( tokens[cuenta] != 0){
+		// Cerramos el write del hijo
+		close(fdh[1]);
+
+		for (int i = 0; i < countArchivos; ++i){
 			// Pasamos la informacion por el pipe
-			write(fdp[cuenta%NumProcesos][1], tokens[cuenta], strlen(tokens[cuenta]) + 1);
-			cuenta++;
+			write(fdp[1], tokens[i], strlen(tokens[i]) + 1);
 		}
 
-		//Cerramos todas las entradas de escritura
-		for (int i = 0; i < NumProcesos; ++i){
-			close(fdp[i][1]);
-		}
-/////////////////
-		//for (int i = 0; i < countArchivos; ++i){
-		while ()
+		//Cerramos la entrada de escritura
+		close(fdp[1]);
+
+		//Se recibe la informacion de cada hijo y se totaliza
+		for (int i = 0; i < countArchivos; ++i){
 			// Obtenemos los resultados por el pipe
 
 			/////////////////////////////////
-			// No se todavia que se recibe por el pipe
+			// Recibe la struct aqui, besitos
 			/////////////////////////////////
-
-			int a;
-			read(fdh[i%NumProcesos][0], &a, sizeof(int));
+			read(fdh[0], , );
 			printf("Recibio en el pipe:%d\n", a);
-			final += a;
 
-			//Recibe todos la info de los hijos
 		}
 		
-		//Por ultimo las demas entradas
+
+		//Cerramos file descriptor del pipes
+		close(fdh[0]);
+
 		for (int i = 0; i < NumProcesos; ++i){
-			//Cerramos los demas files descriptors de los pipes
-			close(fdh[i][0]);
+			kill(f[i], SIGKILL);
 		}
+
 
 	}
 	//Proceso hijo
 	else{
 		//Cerramos el write del padre
-		close(fdp[i][1]);
+		close(fdp[1]);
 
 		//Cerramos el read del hijo
-		close(fdh[i][0]);
+		close(fdh[0]);
 
 
 		//Definimos variables para generar la ruta
@@ -239,30 +234,33 @@ int main(int argc, char const *argv[]){
 		//inicializamos 
 		memset(ruta, 0, 120);
 
-		//Leemos el archivo del pipe
-		read(fdp[i][0], ruta, 100 );
+		while(1){
+			//Leemos el archivo del pipe
+			read(fdp[0], ruta, 100 );
+			
+			//Pasa la ruta a a funcion que abre el .csv y analiza los datos
+			leer_archivo(ruta);
 
-		//Pasa la ruta a a funcion que abre el .csv y analiza los datos
-		leer_archivo(ruta);
 
-		//Pasamos por pipe al proceso padre el resultado de los archivos
-		//Analizados
+			//////////////////////////////////
+			// Aqui envia el struct al padre
+			//////////////////////////////////
 
-		//////////////////////////////////
-		// Tambien falta esto, no se que parametros enviar
-		//////////////////////////////////
-
-		//write(fdh[i][1], &aux, sizeof(aux) );
+			write(fdh[1], , );	
+		}
+		
 
 		//Cerramos los demas files descriptor de los pipes
-		close(fdp[i][0]);
-		close(fdh[i][1]);
+		close(fdp[0]);
+		close(fdh[1]);
 
 		exit(0);
 
 
 		}
+
+	Total_Time_End = Tomar_Tiempo();
 	fclose(fdprincipal);
-	printf("Y el final fue: %d\n", final);
+	printf("Tiempo tomasdo: %d\n",Total_Time_End - Total_Time_Start );
 	return 0;
 }
