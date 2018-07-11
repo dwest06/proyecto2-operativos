@@ -9,7 +9,9 @@
 
 //Variables Globales
 
-long cantHombres = 0, cantMujeres = 0, promedioHombre = 0, promedioMujeres= 0;
+long cantHombres = 0, cantMujeres = 0;
+int proporcion_h[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int proporcion_m[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 int counter = 0;
 int NumHilos;
@@ -20,7 +22,6 @@ char tokens[20][100];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#include "funciones.h"
 
 /***************************************************************************
  * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
@@ -83,8 +84,8 @@ int main(int argc, char const *argv[]){
 	}
 	char *nombre_archivo_contenido = calloc(BUFFER, sizeof(char));
     strcpy(nombre_archivo_contenido, argv[2]);
-    //char *ruta_directorio = obtener_ruta_absoluta(nombre_archivo_contenido);
-    char *ruta_directorio = "5departamentos/";
+    char *ruta_directorio = obtener_ruta_absoluta(nombre_archivo_contenido);
+    //char *ruta_directorio = "5departamentos/";
 
   
     // Guardamos un arreglo con la cantidad de 
