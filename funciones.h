@@ -25,3 +25,5 @@ int* unir_arreglos(int tam, int arr1[], int arr2[]);
 informacion* unir_datos(informacion *info1, informacion *info2);
 
 double promedio(int cantidad[]);
+
+informacion* leer_archivo(char *dir);
