@@ -34,7 +34,6 @@ char* obtener_ruta_absoluta(char *ruta_relativa) {
         }
     }
 
-
     strcat(ruta, ruta_corregida);
 
     if (ruta[strlen(ruta)] != '/') strcat(ruta, "/");

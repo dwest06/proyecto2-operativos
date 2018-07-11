@@ -7,12 +7,49 @@
 #include <unistd.h>
 #include "funciones.h"
 
+double sumatoria(int n, int elementos[]) {
+	double res = 0;
+
+	for (int i = 0; i < n; i++)  {
+		res += elementos[i];
+	} 
+
+	return res;
+}
+
+double promedio(int n, int cantidad[]) {
+	int rangos[10][2] = {
+		{0, 9}, 
+		{10, 19},
+		{20, 29},
+		{30, 39},
+		{40, 49},
+		{50, 59},
+		{60, 69},
+		{70, 79},
+		{80, 89},
+		{90, 99}
+	};
+
+	double prom = 0;
+
+	for (int i = 0; i < n; i++) {
+		prom += ((rangos[i][0] + rangos[i][1])/2)*cantidad[i];
+	}
+
+	prom /= sumatoria(n, cantidad);
+
+	return prom;
+
+}
+
 /*
  *	Funcion que se le pasa una direccion de un archivo .csv, lee el contenido
  *	y calcula el promedio de hombre y promedio de mujeres
  *
  */
-int leer_archivo(char *dir ){
+double* leer_archivo(char *dir){
+	double* resultado = calloc(4, sizeof(double));
 
 	// Declaramos ciertas variables utiles para contar hombres y mujeres
 	int count_h = 0;
@@ -35,15 +72,19 @@ int leer_archivo(char *dir ){
 
 	// La primera linea la descartamos ya que no se necesita
 	read = getline(&line, &len, fd);
-	printf("Este es el primer getline: %s\n", line );
-	// Leemos hasta que ya no puedo leer mas
+
+	// Leemos por pueblo hasta que ya no puedo leer mas
+	int cant_pueblos = 0;
 	while ((read = getline(&line, &len, fd)) != -1) {
 		// O leemos hasta que la linea que sea solo contenga un salto de linea
 		if (read == 1) break;
 
+		cant_pueblos += 1;
+
 		// Quitamos el salto de linea al final
 		if (line[read - 1] == '\n')
 			line[read - 1] = '\0';
+		printf("%s\n", line);
 
 		// La primera linea de cada segmento de informacion tampoco se necesita
 		// A partir de la segunda linea de cada segmento es que esta la info
@@ -53,31 +94,53 @@ int leer_archivo(char *dir ){
 
         // El primer token de la linea tampoco se necesita
         token = strtok(line, ",");
-        printf("%s\n", token);
 
+        // El segundo tampoco
+        token = strtok(NULL, ",");
+
+        int hombres[10];
+        int x = 0;
         // Leemos todos los datos 
         while ((token = strtok(NULL,",")) != NULL){
-        	// Calcular promedio de los hombres
-        	printf("%s\n",token );
+        	if (token[0] == ' ') memmove(token, token+1, strlen(token));
+        	hombres[x] = atoi(token);
+        	x += 1; 
         }
 
+        printf("Promedio de hombres: %f\n", promedio(x, hombres));
+       	
         // Para las mujeres
         read = getline(&line, &len, fd);
 
         // El primer token de la linea tampoco se necesita
         token = strtok(line, ",");
-        printf("%s\n", token);
+        // El segundo tampoco
+        token = strtok(NULL, ",");
 
+        int mujeres[10];
+       	int y = 0;
         // Leemos todos los datos 
         while ((token = strtok(NULL,",")) != NULL){
-        	// Calcular promedio de las mujeres
-        	printf("%s\n",token );
+        	if (token[0] == ' ') memmove(token, token+1, strlen(token));
+        	mujeres[y] = atoi(token);
+        	y += 1; 
         }
+
+        resultado[0] += sumatoria(x, hombres);
+        resultado[1] += sumatoria(y, mujeres);
+        resultado[2] += promedio(x, hombres);
+        resultado[3] += promedio(y, mujeres);
     }
+
+    resultado[2] /= cant_pueblos;
+    resultado[3] /= cant_pueblos;
 
 	// lo Cerramos
 	fclose(fd);
-	return 0;
+	for (int i = 0; i < 4; i++) {
+		printf("%f\n", resultado[i]);
+	}
+	return resultado;
 }
 
 int main(int argc, char const *argv[]){
@@ -138,7 +201,7 @@ int main(int argc, char const *argv[]){
 	// Para los forks y reconocer cual es el padre y cual es el hijo
 	pid_t f;
 
-	for (int i = 0; i < NumProcesos; ++i)	{
+	for (int i = 0; i < NumProcesos; ++i) {
 
 		// Pipe para la comunicacion de padre a hijo
 		pipe(fdp[i]);
@@ -149,7 +212,7 @@ int main(int argc, char const *argv[]){
 		// Fork para crear a los hijos
 		f = fork();
 		// Proceso padre
-		if (f > 0){
+		if (f > 0) {
 			// Cerramos el read del padre
 			close(fdp[i][0]);
 
@@ -168,10 +231,10 @@ int main(int argc, char const *argv[]){
 			// No se todavia que se recibe por el pipe
 			/////////////////////////////////
 
-			int a;
-			read(fdh[i][0], &a, sizeof(int));
-			printf("Recibio en el pipe:%d\n", a);
-			final += a;
+			double* a;
+			read(fdh[i][0], a, sizeof(double*));
+			printf("Recibio en el pipe:%f\n", a[0]);
+			//final += a;
 
 			//Recibe todos la info de los hijos
 
@@ -197,7 +260,7 @@ int main(int argc, char const *argv[]){
 			read(fdp[i][0], ruta, 100 );
 
 			//Pasa la ruta a a funcion que abre el .csv y analiza los datos
-			leer_archivo(ruta);
+			double *datos = leer_archivo(ruta);
 
 			//Pasamos por pipe al proceso padre el resultado de los archivos
 			//Analizados
@@ -206,20 +269,16 @@ int main(int argc, char const *argv[]){
 			// Tambien falta esto, no se que parametros enviar
 			//////////////////////////////////
 
-			//write(fdh[i][1], &aux, sizeof(aux) );
+			write(fdh[i][1], datos, sizeof(datos));
 
 			//Cerramos los demas files descriptor de los pipes
 			close(fdp[i][0]);
 			close(fdh[i][1]);
 
 			exit(0);
-
-
 		}
 
-
-    //Cerramos el archivo que contiene la lista de los nombres
-	
+    //Cerramos el archivo que contiene la lista de los nombre
 	}
 	fclose(fdprincipal);
 	printf("Y el final fue: %d\n", final);
