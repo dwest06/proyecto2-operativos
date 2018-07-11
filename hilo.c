@@ -9,7 +9,7 @@
 
 //Variables Globales
 
-long cantHombres = 0, cantMujeres = 0;
+int cantHombres = 0, cantMujeres = 0;
 int proporcion_h[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int proporcion_m[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -22,22 +22,8 @@ char tokens[20][100];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-/***************************************************************************
- * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
- * Retorna el tiempo en microsegundos
- ***************************************************************************/
-int Tomar_Tiempo()
-{
-    struct timeval t;         /* usado para tomar los tiempos */
-    int dt;
-    gettimeofday ( &t, (struct timezone*)0 );
-    dt = (t.tv_sec)*1000000 + t.tv_usec;
-    return dt;
-}
-
 //Funcion que realiza un hilo
-void *leer_archivo(void *arg){
+void *leer_archivo_hilos(void *arg){
 	char *dir;
 	while (counter < countArchivos){
 		
@@ -45,15 +31,78 @@ void *leer_archivo(void *arg){
 		//Buscamos el archivo
 		dir = tokens[counter];
 		counter++;
-		printf("%s\n", dir);
 		pthread_mutex_unlock(&mutex);
-		/////////////////////
-		//Analizamos lo que este en dir
-		/////////////////////
 
-		//printf("%lu, counter: %d, dir: %s\n",pthread_self(), counter, dir );
+		// Verificamos si el se abrio correctamente
+		FILE * fd = fopen(dir, "r");
+	    if (fd == NULL){
+	        perror("Error en leer_archivo");
+	        exit(EXIT_FAILURE);
+	    }
 
-		
+	    char *lineh = NULL;
+	    size_t lenh = 0;
+	    ssize_t readh;
+	    char *tokenh = NULL;
+
+	    int hombres[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	    int cant_hombres;
+	    int mujeres[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	    int cant_mujeres;
+
+	    readh = getline(&lineh, &lenh, fd);
+
+	    while ((readh = getline(&lineh, &lenh, fd)) != -1) {
+	        // O leemos hasta que la linea que sea solo contenga un salto de linea
+	        if (readh == 1) break;
+
+	        // Quitamos el salto de linea al final
+	        if (lineh[readh - 1] == '\n')
+	            lineh[readh - 1] = '\0';
+
+	        // La primera linea de cada segmento de informacion tampoco se necesita
+	        // A partir de la segunda linea de cada segmento es que esta la info
+	        // necesaria para calcular el promedio
+	        // Esta linea para los hombres
+	        readh = getline(&lineh, &lenh, fd);
+
+	        // El primer token de la linea tampoco se necesita
+	        tokenh = strtok(lineh, ",");
+
+	        // El segundo tampoco
+	        tokenh = strtok(NULL, ",");
+
+	        cant_hombres = 0;
+	        // Leemos todos los datos 
+	        while ((tokenh = strtok(NULL,",")) != NULL){
+	            if (tokenh[0] == ' ') memmove(tokenh, tokenh+1, strlen(tokenh));
+	            hombres[cant_hombres] += atoi(tokenh);
+	            cant_hombres += 1; 
+	        }
+	        
+	        // Para las mujeres
+	        readh = getline(&lineh, &lenh, fd);
+
+	        // El primer tokenh de la linea tampoco se necesita
+	        tokenh = strtok(lineh, ",");
+	        // El segundo tampoco
+	        tokenh = strtok(NULL, ",");
+
+	        cant_mujeres = 0;
+	        // Leemos todos los datos 
+	        while ((tokenh = strtok(NULL,",")) != NULL){
+	            if (tokenh[0] == ' ') memmove(tokenh, tokenh+1, strlen(tokenh));
+	            mujeres[cant_mujeres] += atoi(tokenh);
+	            cant_mujeres += 1; 
+	        }
+	    }
+		cantHombres += sumatoria(hombres);
+		cantMujeres += sumatoria(mujeres);
+
+		for (int i = 0; i < 10; i++) {
+	        proporcion_h[i] = hombres[i];
+	        proporcion_m[i] = mujeres[i];
+	    }
 	}
 
 	pthread_exit(NULL);
@@ -125,7 +174,7 @@ int main(int argc, char const *argv[]){
 	int err;
 
 	for (int i = 0; i < NumHilos; ++i){
-		err = pthread_create( &(threads[i%NumHilos]) , NULL , (void*)leer_archivo, NULL );
+		err = pthread_create( &(threads[i%NumHilos]) , NULL , (void*)leer_archivo_hilos, NULL );
 	}
 
 	for (int i = 0; i < NumHilos; ++i){
@@ -133,8 +182,13 @@ int main(int argc, char const *argv[]){
 	}
 
 	Total_Time_End = Tomar_Tiempo();
+	printf("Cantidad total de hombres: %i\n", cantHombres);
+	printf("Cantidad total de mujeres: %i\n", cantMujeres);
 
-	printf("Tiempo tomasdo: %d\n",Total_Time_End - Total_Time_Start );
+	printf("Promedio total de edad de hombres: %f\n", promedio(proporcion_h));
+	printf("Promedio total de edad de mujeres: %f\n", promedio(proporcion_m));
+
+	printf("Tiempo: %dms\n",Total_Time_End - Total_Time_Start );
 
 	return 0;
 }

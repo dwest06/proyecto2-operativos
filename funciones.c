@@ -106,10 +106,6 @@ double calcular_promedio() {
 informacion* leer_archivo(char *dir) {
     informacion* resultado = calloc(1, sizeof(informacion));
 
-    // Declaramos ciertas variables utiles para contar hombres y mujeres
-    int count_h = 0;
-    int count_m = 0;
-
     // Abrimos el archivo
     FILE * fd = fopen(dir, "r");
 
@@ -129,7 +125,6 @@ informacion* leer_archivo(char *dir) {
     read = getline(&line, &len, fd);
 
     // Leemos por pueblo hasta que ya no puedo leer mas
-    int cant_pueblos = 0;
     int hombres[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int cant_hombres;
     int mujeres[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -139,8 +134,6 @@ informacion* leer_archivo(char *dir) {
     while ((read = getline(&line, &len, fd)) != -1) {
         // O leemos hasta que la linea que sea solo contenga un salto de linea
         if (read == 1) break;
-
-        cant_pueblos += 1;
 
         // Quitamos el salto de linea al final
         if (line[read - 1] == '\n')
