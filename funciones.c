@@ -1,5 +1,32 @@
 #include "funciones.h"
 
+int sumatoria(int elementos[]) {
+    int res = 0;
+
+    for (int i = 0; i < 10; i++)  {
+        res += elementos[i];
+    } 
+
+    return res;
+}
+
+informacion* unir_datos(informacion *info1, informacion *info2) {
+    informacion *resultado = calloc(1, sizeof(informacion));
+
+    if (info1 == NULL) return NULL;
+    if (info2 == NULL) return info1;
+
+    resultado->hombres = info1->hombres + info2->hombres;
+    resultado->mujeres = info1->mujeres + info2->mujeres;
+
+    for (int i = 0; i < 10; i++) {
+        resultado->proporcion_h[i] = info1->proporcion_h[i] + info2->proporcion_h[i];
+        resultado->proporcion_m[i] = info1->proporcion_m[i] + info2->proporcion_m[i];
+    }
+
+    return resultado;   
+}
+
 int es_archivo(char *ruta) {
     struct stat path_stat;
     stat(ruta, &path_stat);
