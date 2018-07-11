@@ -6,6 +6,21 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "funciones.h"
+#include <math.h>
+#include <sys/time.h>
+
+/***************************************************************************
+ * Definicion de la funcion para tomar los tiempos en Solaris o Linux.
+ * Retorna el tiempo en microsegundos
+ ***************************************************************************/
+int Tomar_Tiempo()
+{
+    struct timeval t;         /* usado para tomar los tiempos */
+    int dt;
+    gettimeofday ( &t, (struct timezone*)0 );
+    dt = (t.tv_sec)*1000000 + t.tv_usec;
+    return dt;
+}
 
 /*
  *	Funcion que se le pasa una direccion de un archivo .csv, lee el contenido
@@ -130,6 +145,7 @@ int main(int argc, char const *argv[]){
 		strcat(tokens[i], line);
         strcat(tokens[i], ".csv");
 
+        //Contamos cuantos archivos se tiene que analizar
         countArchivos++;
 	}
 
@@ -173,16 +189,21 @@ int main(int argc, char const *argv[]){
 			// Cerramos el write del hijo
 			close(fdh[i][1]);
 		}
-			
-		for (int i = 0; i < countArchivos; ++i){
+		int cuenta = 0;
+		//for (int i = 0; i < countArchivos; ++i){
+		while( tokens[cuenta] != 0){
 			// Pasamos la informacion por el pipe
-			write(fdp[i%NumProcesos][1], tokens[i], strlen(tokens[i]) + 1);
+			write(fdp[cuenta%NumProcesos][1], tokens[cuenta], strlen(tokens[cuenta]) + 1);
+			cuenta++;
 		}
 
-			// Esperamos a que el hijo finalice los calculos
-			wait(NULL);
-
-		for (int i = 0; i < countArchivos; ++i){
+		//Cerramos todas las entradas de escritura
+		for (int i = 0; i < NumProcesos; ++i){
+			close(fdp[i][1]);
+		}
+/////////////////
+		//for (int i = 0; i < countArchivos; ++i){
+		while ()
 			// Obtenemos los resultados por el pipe
 
 			/////////////////////////////////
@@ -197,10 +218,9 @@ int main(int argc, char const *argv[]){
 			//Recibe todos la info de los hijos
 		}
 		
-		
+		//Por ultimo las demas entradas
 		for (int i = 0; i < NumProcesos; ++i){
 			//Cerramos los demas files descriptors de los pipes
-			close(fdp[i][1]);
 			close(fdh[i][0]);
 		}
 
