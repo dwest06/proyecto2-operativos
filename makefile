@@ -14,7 +14,7 @@ $(DIR_LIBS):
 	mkdir $(DIR_LIBS)
 
 # Nombre de las librerías/objetos que se requieren
-LIBRERIAS = $(DIR_LIBS)/funciones.o $(DIR_LIBS)/main.o
+LIBRERIAS = $(DIR_LIBS)/funciones.o $(DIR_LIBS)/stack.o $(DIR_LIBS)/main.o
 
 # Nombre del ejecutable final
 PROGRAMA = main
@@ -37,8 +37,11 @@ clean:
 $(PROGRAMA): $(LIBRERIAS)
 	$(LINKEADOR) $(LIBRERIAS) -o $(PROGRAMA)
 
-$(DIR_LIBS)/main.o: main.c $(DIR_LIBS) funciones.h
+$(DIR_LIBS)/main.o: main.c $(DIR_LIBS) funciones.h stack.h
 	$(COMPILADOR) main.c -o $(DIR_LIBS)/main.o
 
 $(DIR_LIBS)/funciones.o: funciones.c $(DIR_LIBS) 
 	$(COMPILADOR) funciones.c -o $(DIR_LIBS)/funciones.o
+
+$(DIR_LIBS)/stack.o: stack.c $(DIR_LIBS) 
+	$(COMPILADOR) stack.c -o $(DIR_LIBS)/stack.o
